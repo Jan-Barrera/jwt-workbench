@@ -21,6 +21,14 @@ describe("normalizeJwtInput", () => {
 });
 
 describe("decodeJwt", () => {
+  it("reports empty input", () => {
+    const result = decodeJwt("   ");
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.code, "EMPTY");
+    assert.match(result.error, /Enter a JWT/i);
+  });
+
   it("decodes a valid JWT", () => {
     const result = decodeJwt(SAMPLE_JWT);
     assert.equal(result.ok, true);

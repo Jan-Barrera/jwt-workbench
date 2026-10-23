@@ -12,7 +12,14 @@ export function JwtValidationPanel({ checks }: JwtValidationPanelProps) {
       {checks.map((check) => (
         <li
           key={check.id}
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-900/40"
+          className={`rounded-lg border px-3 py-3 ${
+            check.outcome === "fail"
+              ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30"
+              : check.outcome === "warning"
+                ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30"
+                : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/40"
+          }`}
+          {...(check.outcome === "fail" ? { role: "alert" as const } : {})}
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">

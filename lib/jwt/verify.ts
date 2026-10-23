@@ -10,27 +10,28 @@ import {
   type JWSAlgorithm,
 } from "jose";
 
+import {
+  SUPPORTED_ALGORITHMS,
+  expectedJwkKty,
+  isHmacAlgorithm,
+  isSupportedAlgorithm,
+  type SupportedAlgorithm,
+} from "@/lib/crypto";
+import {
+  detectKeyFormat,
+  isPrivatePemLabel,
+  pemLabel,
+} from "@/lib/crypto/pem";
+
 import { normalizeJwtInput } from "./decode";
 import type { SignatureVerificationResult } from "./validate";
 
-export const SUPPORTED_ALGORITHMS = [
-  "HS256",
-  "HS384",
-  "HS512",
-  "RS256",
-  "RS384",
-  "RS512",
-  "PS256",
-  "PS384",
-  "PS512",
-  "ES256",
-  "ES384",
-  "ES512",
-  "EdDSA",
-  "Ed25519",
-] as const;
-
-export type SupportedAlgorithm = (typeof SUPPORTED_ALGORITHMS)[number];
+export {
+  SUPPORTED_ALGORITHMS,
+  isHmacAlgorithm,
+  isSupportedAlgorithm,
+  type SupportedAlgorithm,
+};
 
 export type VerifyKeyFormat = "auto" | "secret" | "pem" | "jwk";
 
@@ -55,25 +56,6 @@ export type VerifyJwtOptions = {
   keyMaterial?: string;
   keyFormat?: VerifyKeyFormat;
 };
-
-const HMAC_ALGORITHMS = new Set<string>(["HS256", "HS384", "HS512"]);
-
-const PRIVATE_PEM_LABELS = [
-  "PRIVATE KEY",
-  "RSA PRIVATE KEY",
-  "EC PRIVATE KEY",
-  "OPENSSH PRIVATE KEY",
-];
-
-export function isSupportedAlgorithm(
-  alg: string,
-): alg is SupportedAlgorithm {
-  return (SUPPORTED_ALGORITHMS as readonly string[]).includes(alg);
-}
-
-export function isHmacAlgorithm(alg: string): boolean {
-  return HMAC_ALGORITHMS.has(alg);
-}
 
 export function jwtHeaderAlgorithm(header: unknown): string | null {
   if (!isRecord(header)) return null;
@@ -209,25 +191,6 @@ function verifyResult(
   };
 }
 
-function detectKeyFormat(material: string): Exclude<VerifyKeyFormat, "auto"> {
-  const trimmed = material.trim();
-  if (trimmed.startsWith("{")) return "jwk";
-  if (trimmed.includes("-----BEGIN ")) return "pem";
-  return "secret";
-}
-
-function pemLabel(material: string): string | null {
-  const match = /-----BEGIN ([A-Z0-9 ]+)-----/.exec(material);
-  return match?.[1] ?? null;
-}
-
-function expectedJwkKty(alg: SupportedAlgorithm): JWK["kty"] {
-  if (isHmacAlgorithm(alg)) return "oct";
-  if (alg.startsWith("RS") || alg.startsWith("PS")) return "RSA";
-  if (alg.startsWith("ES")) return "EC";
-  return "OKP";
-}
-
 async function importVerificationKey(input: {
   alg: SupportedAlgorithm;
   kid: string | undefined;
@@ -276,7 +239,7 @@ async function importPemKey(
     );
   }
 
-  if (PRIVATE_PEM_LABELS.includes(label)) {
+  if (isPrivatePemLabel(label)) {
     return verifyResult(
       "MALFORMED_KEY",
       alg,

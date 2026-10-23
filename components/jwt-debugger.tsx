@@ -15,12 +15,10 @@ import type { ValidationOutcome } from "@/lib/jwt/validate";
 
 import { PrivacyToolbar } from "@/components/privacy/privacy-toolbar";
 
+import { JwtProcessingState } from "./jwt-processing-state";
 import { ClaimInspector } from "./claim-inspector";
 import { JwksInspector } from "./jwks-inspector";
-import {
-  SignatureStatusBadge,
-  SignatureVerificationForm,
-} from "./signature-verification";
+import { SignatureVerificationForm } from "./signature-verification";
 
 const PLACEHOLDER =
   "Paste a compact JWT (header.payload.signature) or Bearer token…";
@@ -186,6 +184,12 @@ export function JwtDebugger() {
 
       {report && (
         <>
+          <JwtProcessingState
+            decoded={report.decode.ok}
+            validationChecks={report.validation.checks}
+            verifyResult={verifyResult}
+          />
+
           <section
             className="flex flex-col gap-3"
             aria-labelledby="debugger-config-heading"
@@ -272,7 +276,7 @@ export function JwtDebugger() {
             result={verifyResult}
           />
 
-          <DebugReportPanel report={report} verifyResult={verifyResult} />
+          <DebugReportPanel report={report} />
         </>
       )}
     </div>
@@ -281,10 +285,9 @@ export function JwtDebugger() {
 
 type DebugReportPanelProps = {
   report: NonNullable<ReturnType<typeof buildJwtDebugReport>>;
-  verifyResult: VerifyJwtResult | null;
 };
 
-function DebugReportPanel({ report, verifyResult }: DebugReportPanelProps) {
+function DebugReportPanel({ report }: DebugReportPanelProps) {
   const validationFindings = report.findings.filter(
     (f) =>
       !f.id.startsWith("observation.") &&
@@ -333,7 +336,6 @@ function DebugReportPanel({ report, verifyResult }: DebugReportPanelProps) {
               kid {report.kid}
             </span>
           )}
-          <SignatureStatusBadge result={verifyResult} />
         </div>
       </div>
 

@@ -13,10 +13,14 @@ import {
 
 import {
   SUPPORTED_ALGORITHMS,
+  headerAlgorithmLabel,
+  headerAlgorithmsMatch,
   isHmacAlgorithm,
   isSupportedAlgorithm,
+  toJoseAlgorithm,
   type SupportedAlgorithm,
-} from "./verify";
+} from "@/lib/crypto";
+import { detectKeyFormat, isPrivatePemLabel, pemLabel } from "@/lib/crypto/pem";
 
 export { SUPPORTED_ALGORITHMS, type SupportedAlgorithm };
 
@@ -76,13 +80,6 @@ export type LocalKeyPairResult =
       message: string;
     }
   | { ok: false; message: string };
-
-const PRIVATE_PEM_LABELS = [
-  "PRIVATE KEY",
-  "RSA PRIVATE KEY",
-  "EC PRIVATE KEY",
-  "OPENSSH PRIVATE KEY",
-];
 
 export function parseJsonObject(
   raw: string,
@@ -199,30 +196,6 @@ export function buildPayloadFromFields(
   return { ok: true, payload };
 }
 
-function joseCryptoAlgorithm(algorithm: SupportedAlgorithm): JWSAlgorithm {
-  if (algorithm === "Ed25519") return "EdDSA";
-  return algorithm as JWSAlgorithm;
-}
-
-function headerAlgorithmLabel(algorithm: SupportedAlgorithm): string {
-  if (algorithm === "Ed25519") return "EdDSA";
-  return algorithm;
-}
-
-function headerAlgorithmsMatch(
-  headerAlg: string,
-  selected: SupportedAlgorithm,
-): boolean {
-  if (headerAlg === selected) return true;
-  if (
-    (headerAlg === "EdDSA" && selected === "Ed25519") ||
-    (headerAlg === "Ed25519" && selected === "EdDSA")
-  ) {
-    return true;
-  }
-  return false;
-}
-
 export function normalizeHeaderForSign(
   header: Record<string, unknown>,
   algorithm: SupportedAlgorithm,
@@ -284,7 +257,7 @@ export async function generateJwt(
   const format =
     options.keyFormat && options.keyFormat !== "auto"
       ? options.keyFormat
-      : detectSignKeyFormat(keyMaterial);
+      : detectKeyFormat(keyMaterial);
 
   const keyOrError = await importSigningKey({
     alg: algorithm,
@@ -343,7 +316,7 @@ export async function createLocalSigningMaterial(
       };
     }
 
-    const pair = await generateKeyPair(joseCryptoAlgorithm(algorithm), {
+    const pair = await generateKeyPair(toJoseAlgorithm(algorithm) as JWSAlgorithm, {
       extractable: true,
     });
     const privateKeyMaterial = await exportPKCS8(pair.privateKey);
@@ -374,18 +347,6 @@ function parseClaimValue(
   } catch {
     return { ok: true, value: raw };
   }
-}
-
-function detectSignKeyFormat(material: string): Exclude<SignKeyFormat, "auto"> {
-  const trimmed = material.trim();
-  if (trimmed.startsWith("{")) return "jwk";
-  if (trimmed.includes("-----BEGIN ")) return "pem";
-  return "secret";
-}
-
-function pemLabel(material: string): string | null {
-  const match = /-----BEGIN ([A-Z0-9 ]+)-----/.exec(material);
-  return match?.[1] ?? null;
 }
 
 async function importSigningKey(input: {
@@ -429,7 +390,7 @@ async function importPrivatePem(
   alg: SupportedAlgorithm,
 ): Promise<{ ok: true; key: CryptoKey } | GenerateJwtError> {
   const label = pemLabel(material);
-  if (!label || !PRIVATE_PEM_LABELS.includes(label)) {
+  if (!label || !isPrivatePemLabel(label)) {
     return error(
       "MALFORMED_KEY",
       "Paste a PKCS#8 private key (BEGIN PRIVATE KEY) or algorithm-specific private PEM.",
@@ -438,7 +399,7 @@ async function importPrivatePem(
   }
 
   try {
-    const key = await importPKCS8(material, joseCryptoAlgorithm(alg));
+    const key = await importPKCS8(material, toJoseAlgorithm(alg) as JWSAlgorithm);
     return { ok: true, key };
   } catch {
     return error(
@@ -473,7 +434,7 @@ async function importPrivateJwk(
   }
 
   try {
-    const key = await importJWK(parsed, joseCryptoAlgorithm(alg));
+    const key = await importJWK(parsed, toJoseAlgorithm(alg) as JWSAlgorithm);
     if (!(key instanceof CryptoKey)) {
       return error(
         "MALFORMED_KEY",

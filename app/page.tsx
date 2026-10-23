@@ -19,7 +19,7 @@ export default function Home() {
           <ThemeToggle />
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main id="main-content" className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <WorkbenchShell />
       </main>
     </div>

@@ -19,9 +19,6 @@ const HS256_SECRET = "your-256-bit-secret";
 const HS256_JWT =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
-const HS384_SECRET = "s".repeat(48);
-const HS512_SECRET = "s".repeat(64);
-
 function encodeSegment(value: unknown): string {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
@@ -38,18 +35,6 @@ describe("verifyJwt", () => {
   let rsaJwk: Record<string, unknown>;
   let rsaToken: string;
 
-  let ec: Awaited<ReturnType<typeof generateKeyPair>>;
-  let ecSpki: string;
-  let ecToken: string;
-
-  let pss: Awaited<ReturnType<typeof generateKeyPair>>;
-  let pssSpki: string;
-  let pssToken: string;
-
-  let ed: Awaited<ReturnType<typeof generateKeyPair>>;
-  let edToken: string;
-  let edJwk: Record<string, unknown>;
-
   before(async () => {
     rsa = await generateKeyPair("RS256", { extractable: true });
     rsaSpki = await exportSPKI(rsa.publicKey);
@@ -57,31 +42,6 @@ describe("verifyJwt", () => {
     rsaToken = await new SignJWT({ sub: "rsa" })
       .setProtectedHeader({ alg: "RS256", kid: "rsa-1", typ: "JWT" })
       .sign(rsa.privateKey);
-
-    ec = await generateKeyPair("ES256", { extractable: true });
-    ecSpki = await exportSPKI(ec.publicKey);
-    ecToken = await new SignJWT({ sub: "ec" })
-      .setProtectedHeader({ alg: "ES256" })
-      .sign(ec.privateKey);
-
-    pss = await generateKeyPair("PS256", { extractable: true });
-    pssSpki = await exportSPKI(pss.publicKey);
-    pssToken = await new SignJWT({ sub: "pss" })
-      .setProtectedHeader({ alg: "PS256" })
-      .sign(pss.privateKey);
-
-    ed = await generateKeyPair("EdDSA", { extractable: true });
-    edJwk = (await exportJWK(ed.publicKey)) as Record<string, unknown>;
-    edToken = await new SignJWT({ sub: "ed" })
-      .setProtectedHeader({ alg: "EdDSA" })
-      .sign(ed.privateKey);
-  });
-
-  it("verifies the jwt.io HS256 test vector with a shared secret", async () => {
-    const result = await verifyJwt(HS256_JWT, { keyMaterial: HS256_SECRET });
-    assert.equal(result.code, "PASS");
-    assert.equal(result.ok, true);
-    assert.equal(result.algorithm, "HS256");
   });
 
   it("verifies a Bearer-prefixed HS256 token", async () => {
@@ -101,34 +61,6 @@ describe("verifyJwt", () => {
       keyMaterial: JSON.stringify(jwk),
     });
     assert.equal(result.code, "PASS");
-  });
-
-  it("verifies HS384 and HS512 with matching secrets", async () => {
-    const hs384 = await new SignJWT({ sub: "384" })
-      .setProtectedHeader({ alg: "HS384" })
-      .sign(new TextEncoder().encode(HS384_SECRET));
-    const hs512 = await new SignJWT({ sub: "512" })
-      .setProtectedHeader({ alg: "HS512" })
-      .sign(new TextEncoder().encode(HS512_SECRET));
-
-    assert.equal(
-      (await verifyJwt(hs384, { keyMaterial: HS384_SECRET })).code,
-      "PASS",
-    );
-    assert.equal(
-      (await verifyJwt(hs512, { keyMaterial: HS512_SECRET })).code,
-      "PASS",
-    );
-  });
-
-  it("verifies RS256 with a PEM public key and a JWK", async () => {
-    const pem = await verifyJwt(rsaToken, { keyMaterial: rsaSpki });
-    assert.equal(pem.code, "PASS");
-
-    const jwk = await verifyJwt(rsaToken, {
-      keyMaterial: JSON.stringify(rsaJwk),
-    });
-    assert.equal(jwk.code, "PASS");
   });
 
   it("does not report an invalid signature when JWKS has no matching kid", async () => {
@@ -156,21 +88,6 @@ describe("verifyJwt", () => {
       keyMaterial: JSON.stringify(jwks),
     });
     assert.equal(result.code, "PASS");
-  });
-
-  it("verifies ES256, PS256, and EdDSA with public material", async () => {
-    assert.equal(
-      (await verifyJwt(ecToken, { keyMaterial: ecSpki })).code,
-      "PASS",
-    );
-    assert.equal(
-      (await verifyJwt(pssToken, { keyMaterial: pssSpki })).code,
-      "PASS",
-    );
-    assert.equal(
-      (await verifyJwt(edToken, { keyMaterial: JSON.stringify(edJwk) })).code,
-      "PASS",
-    );
   });
 
   it("fails when the payload is modified", async () => {

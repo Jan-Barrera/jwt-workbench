@@ -14,15 +14,13 @@ import {
 
 import { PrivacyToolbar } from "@/components/privacy/privacy-toolbar";
 
+import { JwtProcessingState } from "./jwt-processing-state";
 import { ClaimInspector } from "./claim-inspector";
 import { CopyButton } from "./copy-button";
 import { JsonHighlight } from "./json-highlight";
 import { JwtValidationPanel } from "./jwt-validation-panel";
 import { JwksInspector } from "./jwks-inspector";
-import {
-  SignatureStatusBadge,
-  SignatureVerificationForm,
-} from "./signature-verification";
+import { SignatureVerificationForm } from "./signature-verification";
 
 const SAMPLE_PLACEHOLDER =
   "Paste a compact JWT (header.payload.signature) or Bearer token…";
@@ -174,6 +172,14 @@ export function JwtDecoder() {
         )}
       </div>
 
+      {(result?.ok || validation) && (
+        <JwtProcessingState
+          decoded={Boolean(result?.ok)}
+          validationChecks={validation?.checks ?? null}
+          verifyResult={verifyResult}
+        />
+      )}
+
       {validation && (
         <section
           className="flex flex-col gap-3"
@@ -266,24 +272,16 @@ export function JwtDecoder() {
 
       {result?.ok && (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-sky-900 dark:bg-sky-950 dark:text-sky-200"
-              title="Header and payload JSON decoded locally; this is not signature verification"
-            >
-              Decoded
-            </span>
-            <SignatureStatusBadge result={verifyResult} />
-            <CopyButton label="full JWT" value={result.normalizedToken} />
-          </div>
-
           <section className="flex flex-col gap-2" aria-labelledby="segments-heading">
-            <h2
-              id="segments-heading"
-              className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
-            >
-              Encoded segments
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2
+                id="segments-heading"
+                className="text-sm font-semibold text-zinc-800 dark:text-zinc-200"
+              >
+                Encoded segments
+              </h2>
+              <CopyButton label="full JWT" value={result.normalizedToken} />
+            </div>
             <p className="break-all font-mono text-sm leading-relaxed">
               <span className="rounded bg-amber-100/80 px-0.5 text-amber-950 dark:bg-amber-950/50 dark:text-amber-100">
                 {result.segments.header}

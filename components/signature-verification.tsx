@@ -105,12 +105,15 @@ export function SignatureVerificationForm({
 
       {result && result.code !== "MISSING_KEY" && (
         <p
-          className={`text-sm ${
+          className={`rounded-md px-3 py-2 text-sm ${
             result.ok
-              ? "text-emerald-800 dark:text-emerald-300"
-              : "text-zinc-700 dark:text-zinc-300"
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+              : result.code === "INVALID_SIGNATURE" ||
+                  result.code === "MALFORMED_TOKEN"
+                ? "border border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+                : "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
           }`}
-          role="status"
+          role={result.ok ? "status" : "alert"}
         >
           {result.message}
         </p>

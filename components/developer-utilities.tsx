@@ -9,9 +9,18 @@ import { convertUnixTimestamp } from "@/lib/util/timestamp";
 
 import { LocalPrivacyIndicator } from "@/components/privacy/local-privacy-indicator";
 
+import { TabNav, TabPanel } from "@/components/ui/tab-nav";
+
 import { CopyButton } from "./copy-button";
 
 type UtilityTab = "base64url" | "timestamp" | "json" | "key";
+
+const UTILITY_TABS = [
+  { id: "base64url" as const, label: "Base64URL" },
+  { id: "timestamp" as const, label: "Unix timestamp" },
+  { id: "json" as const, label: "JSON formatter" },
+  { id: "key" as const, label: "PEM / JWK" },
+] as const;
 
 const INPUT_CLASS =
   "w-full resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 font-mono text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
@@ -35,41 +44,19 @@ export function DeveloperUtilities() {
         <LocalPrivacyIndicator message="Local-only — nothing is sent to the server" />
       </div>
 
-      <nav
-        className="flex flex-wrap gap-1 rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900/60"
-        aria-label="Developer utility tools"
-      >
-        {(
-          [
-            { id: "base64url" as const, label: "Base64URL" },
-            { id: "timestamp" as const, label: "Unix timestamp" },
-            { id: "json" as const, label: "JSON formatter" },
-            { id: "key" as const, label: "PEM / JWK" },
-          ] as const
-        ).map((item) => {
-          const active = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              aria-current={active ? "page" : undefined}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                active
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
+      <TabNav
+        items={UTILITY_TABS}
+        value={tab}
+        onChange={setTab}
+        ariaLabel="Developer utility tools"
+      />
 
-      {tab === "base64url" && <Base64UrlUtility />}
-      {tab === "timestamp" && <TimestampUtility />}
-      {tab === "json" && <JsonFormatterUtility />}
-      {tab === "key" && <KeyInspectorUtility />}
+      <TabPanel id={`tabpanel-${tab}`} labelledBy={`tab-${tab}`}>
+        {tab === "base64url" && <Base64UrlUtility />}
+        {tab === "timestamp" && <TimestampUtility />}
+        {tab === "json" && <JsonFormatterUtility />}
+        {tab === "key" && <KeyInspectorUtility />}
+      </TabPanel>
     </div>
   );
 }
