@@ -1,15 +1,17 @@
 {
-  "name": "jwt-tool",
+  "name": "jwt-workbench",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test lib/crypto/algorithms.test.ts lib/crypto/test-vectors.test.ts lib/jwt/decode.test.ts lib/jwt/claims.test.ts lib/jwt/compare.test.ts lib/jwt/debug.test.ts lib/jwt/validate.test.ts lib/jwt/verify.test.ts lib/jwt/generate.test.ts lib/jwks/parse.test.ts lib/jwks/match.test.ts lib/jwks/url.test.ts lib/privacy/scrub.test.ts lib/privacy/url.test.ts lib/theme.test.ts lib/util/base64url.test.ts lib/util/timestamp.test.ts lib/util/json-format.test.ts lib/util/key-inspect.test.ts"
   },
   "dependencies": {
-    "next": "16.4.0",
+    "jose": "^6.2.12",
+    "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -19,8 +21,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   }
 }
